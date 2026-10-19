@@ -4,7 +4,7 @@ $base = file_exists('conexion.php') ? '' : '../';
 <nav class="navbar navbar-expand-lg navbar-dark shadow-sm mb-4" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
   <div class="container">
     <a class="navbar-brand fw-bold text-uppercase" href="<?php echo $base; ?>CRUDE/crudealumnos.php">
-      🎓 ESCUELA IICP
+       ESCUELA IICP
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -15,7 +15,7 @@ $base = file_exists('conexion.php') ? '' : '../';
         <!-- Registros -->
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle fw-semibold" href="#" id="dropRegistro" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            ✏️ Registros
+             Registros
           </a>
           <ul class="dropdown-menu shadow border-0" aria-labelledby="dropRegistro">
             <li><a class="dropdown-item" href="<?php echo $base; ?>REGISTRO/alumnos.php">Alumnos</a></li>
@@ -29,7 +29,7 @@ $base = file_exists('conexion.php') ? '' : '../';
         <!-- Procesos -->
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle fw-semibold" href="#" id="dropProcesos" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            ⚙️ Procesos
+             Procesos
           </a>
           <ul class="dropdown-menu shadow border-0" aria-labelledby="dropProcesos">
             <li><a class="dropdown-item" href="<?php echo $base; ?>PROCESO/inscripcion_grupos.php">Inscripción a grupos</a></li>
@@ -41,7 +41,7 @@ $base = file_exists('conexion.php') ? '' : '../';
         <!-- Catálogos -->
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle fw-semibold" href="#" id="dropCatalogos" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            📋 Catálogos
+             Catálogos
           </a>
           <ul class="dropdown-menu shadow border-0" aria-labelledby="dropCatalogos">
             <li><a class="dropdown-item" href="<?php echo $base; ?>CRUDE/crudealumnos.php">Alumnos</a></li>
@@ -54,7 +54,7 @@ $base = file_exists('conexion.php') ? '' : '../';
         <!-- Reportes -->
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle fw-semibold" href="#" id="dropReportes" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            📊 Reportes
+             Reportes
           </a>
           <ul class="dropdown-menu shadow border-0" aria-labelledby="dropReportes">
             <li><a class="dropdown-item" href="<?php echo $base; ?>REPORTES/alumnos.php">Alumnos</a></li>

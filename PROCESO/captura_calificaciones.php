@@ -1,170 +1,306 @@
 <?php
-include '../conexion.php'; 
-if (!isset($conexion) && isset($mysqli)) $conexion = $mysqli;
+// Mostrar errores para diagnóstico
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-$mensaje = "";
+include("../conexion.php");
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_alumno'], $_POST['id_unidad'], $_POST['calificacion'])) {
-    $id_alumno = intval($_POST['id_alumno']);
-    $id_unidad = intval($_POST['id_unidad']);
-    $calificacion = floatval($_POST['calificacion']);
 
-    if ($id_alumno > 0 && $id_unidad > 0) {
-        $stmt = mysqli_prepare($conexion, "INSERT INTO calificaciones (id_alumno, id_unidad, calificacion) VALUES (?, ?, ?)");
-        if ($stmt) {
-            mysqli_stmt_bind_param($stmt, "iid", $id_alumno, $id_unidad, $calificacion);
-            if (mysqli_stmt_execute($stmt)) {
-                $mensaje = "<div class='alert alert-success alert-dismissible fade show' role='alert'>¡Calificación registrada correctamente!<button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
-            } else {
-                $mensaje = "<div class='alert alert-danger'>Error al guardar: " . mysqli_error($conexion) . "</div>";
-            }
-            mysqli_stmt_close($stmt);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $tipo_captura = $_POST['tipo_captura'] ?? '';
+
+    if ($tipo_captura === 'individual' && isset($conexion)) {
+        $id_alumno = intval($_POST['id_alumno']);
+        $id_unidad = intval($_POST['id_unidad']);
+        $calificacion = floatval($_POST['calificacion']);
+
+        $check = mysqli_query($conexion, "SELECT id FROM calificaciones WHERE id_alumno = $id_alumno AND id_unidad = $id_unidad");
+        if (mysqli_num_rows($check) > 0) {
+            $query = "UPDATE calificaciones SET calificacion = $calificacion WHERE id_alumno = $id_alumno AND id_unidad = $id_unidad";
         } else {
-            $mensaje = "<div class='alert alert-danger'>Error de base de datos: " . mysqli_error($conexion) . "</div>";
+            $query = "INSERT INTO calificaciones (id_alumno, id_unidad, calificacion) VALUES ($id_alumno, $id_unidad, $calificacion)";
         }
-    } else {
-        $mensaje = "<div class='alert alert-warning'>Por favor completa todos los campos correctamente.</div>";
+        mysqli_query($conexion, $query);
+
+        header("Location: captura_calificaciones.php?status=success");
+        exit();
+
+    } elseif ($tipo_captura === 'masiva' && isset($conexion)) {
+        $id_unidad = intval($_POST['id_unidad']);
+        $calificaciones = $_POST['calificaciones'] ?? [];
+
+        foreach ($calificaciones as $id_alumno => $calificacion) {
+            if ($calificacion !== '' && $calificacion !== null) {
+                $id_alumno = intval($id_alumno);
+                $cal = floatval($calificacion);
+
+                $check = mysqli_query($conexion, "SELECT id FROM calificaciones WHERE id_alumno = $id_alumno AND id_unidad = $id_unidad");
+                if (mysqli_num_rows($check) > 0) {
+                    $query = "UPDATE calificaciones SET calificacion = $cal WHERE id_alumno = $id_alumno AND id_unidad = $id_unidad";
+                } else {
+                    $query = "INSERT INTO calificaciones (id_alumno, id_unidad, calificacion) VALUES ($id_alumno, $id_unidad, $cal)";
+                }
+                mysqli_query($conexion, $query);
+            }
+        }
+
+        $id_grupo_retorno = intval($_POST['id_grupo_retorno'] ?? 0);
+        header("Location: captura_calificaciones.php?id_grupo=$id_grupo_retorno&id_unidad_masiva=$id_unidad&status=success");
+        exit();
     }
 }
 
-include '../NAVEGACION/header.php';
-include '../NAVEGACION/navegacion.php';
+$res_alumnos = mysqli_query($conexion, "SELECT id, nocontrol, nombre, apaterno, amaterno FROM alumnos WHERE estatus = 'ALTA' ORDER BY apaterno ASC");
+$res_unidades = mysqli_query($conexion, "SELECT id, descripcion FROM unidades WHERE estatus = 'ALTA' ORDER BY id ASC");
+$res_grupos = mysqli_query($conexion, "SELECT id, nombre FROM grupo WHERE estatus = 'ALTA' ORDER BY nombre ASC");
+
+// Carga de cabecera y barra de navegación
+include("../NAVEGACION/header.php");
+include("../NAVEGACION/navegacion.php");
 ?>
 
-<div class="container my-4">
-    <div class="row justify-content-center">
-        <div class="col-md-10 col-lg-9">
-            <?php echo $mensaje; ?>
+<div class="container mt-4">
+
+    <!-- ALERTA DE ÉXITO -->
+    <?php if (isset($_GET['status'])): ?>
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong>¡Éxito!</strong> Las calificaciones se guardaron correctamente en la base de datos.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <!-- Encabezado con color exacto en hexadecimal sin conflicto de clases Bootstrap -->
+        <div class="card-header text-white p-3" style="background-color: #1f4287 !important;">
+            <h4 class="m-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>Captura de Calificaciones</h4>
+            <small class="text-light">Registro individual de evaluaciones por alumno o masivo por grupo</small>
+        </div>
+        <div class="card-body">
             
-            <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
-                <div class="card-header custom-header p-4">
-                    <h4 class="mb-0 fw-bold">Captura de calificaciones</h4>
-                    <small class="opacity-75">Registro individual de evaluaciones por alumno</small>
-                </div>
-                <div class="card-body p-4">
-                    <form action="captura_calificaciones.php" method="POST">
-                        <div class="row align-items-end">
-                            <div class="col-md-5 mb-3">
-                                <label for="id_alumno" class="form-label fw-semibold">Alumno</label>
-                                <select class="form-select" id="id_alumno" name="id_alumno" onchange="filtrarUnidades(this.value)" required>
-                                    <option value="">Selecciona un alumno...</option>
-                                    <?php
-                                    $res_a = mysqli_query($conexion, "SELECT * FROM alumnos WHERE (estatus != 'BAJA' OR estatus IS NULL)");
-                                    if ($res_a) {
-                                        while ($a = mysqli_fetch_assoc($res_a)) {
-                                            $mat = !empty($a['nocontrol']) ? $a['nocontrol'] : 'Sin Matrícula';
-                                            $nom_comp = trim(($a['nombre'] ?? '') . ' ' . ($a['apaterno'] ?? '') . ' ' . ($a['amaterno'] ?? ''));
-                                            echo "<option value='{$a['id']}'>[{$mat}] " . htmlspecialchars($nom_comp) . "</option>";
-                                        }
-                                    }
+            <!-- Pestañas de Selección -->
+            <ul class="nav nav-tabs mb-4" id="calificacionesTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link <?= (!isset($_GET['id_grupo'])) ? 'active' : '' ?> fw-bold" id="individual-tab" data-bs-toggle="tab" data-bs-target="#individual" type="button" role="tab">
+                        <i class="bi bi-person-fill me-1"></i> Captura Individual
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link <?= (isset($_GET['id_grupo'])) ? 'active' : '' ?> fw-bold" id="masiva-tab" data-bs-toggle="tab" data-bs-target="#masiva" type="button" role="tab">
+                        <i class="bi bi-people-fill me-1"></i> Captura Masiva (Por Grupo)
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="calificacionesTabContent">
+                
+                <!-- CAPTURA INDIVIDUAL -->
+                <div class="tab-pane fade <?= (!isset($_GET['id_grupo'])) ? 'show active' : '' ?>" id="individual" role="tabpanel">
+                    <form action="captura_calificaciones.php" method="POST" class="row g-3">
+                        <input type="hidden" name="tipo_captura" value="individual">
+                        
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Alumno</label>
+                            <select name="id_alumno" class="form-select" required>
+                                <option value="" selected disabled>Selecciona un alumno...</option>
+                                <?php 
+                                if ($res_alumnos) {
+                                    mysqli_data_seek($res_alumnos, 0);
+                                    while($al = mysqli_fetch_assoc($res_alumnos)): 
                                     ?>
-                                </select>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="id_unidad" class="form-label fw-semibold">Id unidad</label>
-                                <select class="form-select" id="id_unidad" name="id_unidad" required>
-                                    <option value="">Selecciona primero un alumno...</option>
-                                    <?php
-                                    // Cargar todas las unidades como respaldo general inicial
-                                    $res_u = mysqli_query($conexion, "SELECT * FROM unidades WHERE (estatus != 'BAJA' OR estatus IS NULL)");
-                                    if ($res_u) {
-                                        while ($u = mysqli_fetch_assoc($res_u)) {
-                                            $desc = !empty($u['descripcion']) ? $u['descripcion'] : "Unidad " . $u['id'];
-                                            echo "<option value='{$u['id']}'>" . htmlspecialchars($desc) . "</option>";
-                                        }
-                                    }
-                                    ?>
-                                </select>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label for="calificacion" class="form-label fw-semibold">Calificación</label>
-                                <input type="number" step="0.1" min="0" max="10" class="form-control" id="calificacion" name="calificacion" value="10" required>
-                            </div>
+                                        <option value="<?= $al['id'] ?>">
+                                            [<?= htmlspecialchars($al['nocontrol']) ?>] <?= htmlspecialchars($al['nombre'].' '.$al['apaterno'].' '.$al['amaterno']) ?>
+                                        </option>
+                                    <?php 
+                                    endwhile; 
+                                }
+                                ?>
+                            </select>
                         </div>
-                        <div class="mt-2 text-end">
-                            <button type="submit" class="btn btn-primary fw-bold px-4" style="background: #1e3c72; border: none;">Guardar Calificación</button>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Unidad</label>
+                            <select name="id_unidad" class="form-select" required>
+                                <option value="" selected disabled>Selecciona una unidad...</option>
+                                <?php 
+                                if ($res_unidades) {
+                                    mysqli_data_seek($res_unidades, 0);
+                                    while($un = mysqli_fetch_assoc($res_unidades)): 
+                                    ?>
+                                        <option value="<?= $un['id'] ?>"><?= htmlspecialchars($un['descripcion']) ?></option>
+                                    <?php 
+                                    endwhile; 
+                                }
+                                ?>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Calificación</label>
+                            <input type="number" name="calificacion" class="form-control" min="0" max="10" step="0.1" placeholder="Ej. 10.0" required>
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            <button type="submit" class="btn text-white px-4" style="background-color: #1f4287 !important; border-color: #1f4287 !important;"><i class="bi bi-save me-1"></i> Guardar Calificación</button>
                         </div>
                     </form>
                 </div>
-            </div>
 
-            <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3">Calificaciones Registradas</h5>
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light border-bottom">
-                                <tr class="text-secondary small text-uppercase">
-                                    <th>ID</th>
-                                    <th>Alumno</th>
-                                    <th>Unidad</th>
-                                    <th>Calificación</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php
-                                $sql_c = "SELECT c.id, c.calificacion, u.descripcion AS unidad, 
-                                                 a.nocontrol, a.nombre, a.apaterno, a.amaterno
-                                          FROM calificaciones c
-                                          LEFT JOIN alumnos a ON c.id_alumno = a.id
-                                          LEFT JOIN unidades u ON c.id_unidad = u.id
-                                          WHERE (a.estatus != 'BAJA' OR a.estatus IS NULL)";
-                                $res_c = mysqli_query($conexion, $sql_c);
-
-                                if ($res_c && mysqli_num_rows($res_c) > 0) {
-                                    while ($r = mysqli_fetch_assoc($res_c)) {
-                                        $mat_c = !empty($r['nocontrol']) ? "[{$r['nocontrol']}] " : "";
-                                        $nom_c = $mat_c . trim(($r['nombre'] ?? '') . ' ' . ($r['apaterno'] ?? '') . ' ' . ($r['amaterno'] ?? ''));
-                                        
-                                        echo "<tr>";
-                                        echo "<td><span class='badge bg-secondary-subtle text-secondary fw-bold px-2 py-1'>{$r['id']}</span></td>";
-                                        echo "<td class='fw-semibold text-dark'>" . htmlspecialchars($nom_c) . "</td>";
-                                        echo "<td class='text-muted small'>" . htmlspecialchars($r['unidad'] ?? 'Unidad Standard') . "</td>";
-                                        echo "<td><span class='badge bg-success-subtle text-success fw-bold px-3 py-1'>{$r['calificacion']}</span></td>";
-                                        echo "</tr>";
-                                    }
-                                } else {
-                                    echo "<tr><td colspan='4' class='text-center text-muted py-4'>No hay calificaciones registradas.</td></tr>";
+                <!-- CAPTURA MASIVA POR GRUPO -->
+                <div class="tab-pane fade <?= (isset($_GET['id_grupo'])) ? 'show active' : '' ?>" id="masiva" role="tabpanel">
+                    <form method="GET" action="captura_calificaciones.php" class="row g-3 bg-light p-3 rounded mb-4">
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold">Seleccionar Grupo</label>
+                            <select name="id_grupo" class="form-select" required>
+                                <option value="" selected disabled>Selecciona un grupo...</option>
+                                <?php 
+                                if ($res_grupos) {
+                                    while($gr = mysqli_fetch_assoc($res_grupos)): 
+                                    ?>
+                                        <option value="<?= $gr['id'] ?>" <?= (isset($_GET['id_grupo']) && $_GET['id_grupo'] == $gr['id']) ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($gr['nombre']) ?>
+                                        </option>
+                                    <?php 
+                                    endwhile; 
                                 }
                                 ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold">Seleccionar Unidad</label>
+                            <select name="id_unidad_masiva" class="form-select" required>
+                                <option value="" selected disabled>Selecciona una unidad...</option>
+                                <?php 
+                                if ($res_unidades) {
+                                    mysqli_data_seek($res_unidades, 0);
+                                    while($un = mysqli_fetch_assoc($res_unidades)): 
+                                    ?>
+                                        <option value="<?= $un['id'] ?>" <?= (isset($_GET['id_unidad_masiva']) && $_GET['id_unidad_masiva'] == $un['id']) ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($un['descripcion']) ?>
+                                        </option>
+                                    <?php 
+                                    endwhile; 
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-secondary w-100"><i class="bi bi-filter me-1"></i> Cargar Lista</button>
+                        </div>
+                    </form>
 
+                    <?php
+                    if (isset($_GET['id_grupo']) && isset($_GET['id_unidad_masiva'])):
+                        $id_grupo_sel = intval($_GET['id_grupo']);
+                        $id_unidad_sel = intval($_GET['id_unidad_masiva']);
+
+                        $query_lista = "SELECT a.id, a.nocontrol, a.nombre, a.apaterno, a.amaterno, c.calificacion
+                                       FROM alumnos a
+                                       LEFT JOIN calificaciones c ON (a.id = c.id_alumno AND c.id_unidad = $id_unidad_sel)
+                                       WHERE a.id_grupo = $id_grupo_sel AND a.estatus = 'ALTA'
+                                       ORDER BY a.apaterno ASC";
+                        $res_lista = mysqli_query($conexion, $query_lista);
+                    ?>
+                        <form action="captura_calificaciones.php" method="POST">
+                            <input type="hidden" name="tipo_captura" value="masiva">
+                            <input type="hidden" name="id_unidad" value="<?= $id_unidad_sel ?>">
+                            <input type="hidden" name="id_grupo_retorno" value="<?= $id_grupo_sel ?>">
+                            
+                            <table class="table table-hover table-bordered align-middle">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th style="width: 80px;">ID</th>
+                                        <th>No. Control</th>
+                                        <th>Nombre Completo del Alumno</th>
+                                        <th style="width: 180px;">Calificación</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if ($res_lista && mysqli_num_rows($res_lista) > 0): ?>
+                                        <?php while ($row = mysqli_fetch_assoc($res_lista)): ?>
+                                            <tr>
+                                                <td><?= $row['id'] ?></td>
+                                                <td><span class="badge bg-secondary"><?= htmlspecialchars($row['nocontrol']) ?></span></td>
+                                                <td><?= htmlspecialchars($row['nombre'].' '.$row['apaterno'].' '.$row['amaterno']) ?></td>
+                                                <td>
+                                                    <input type="number" 
+                                                           name="calificaciones[<?= $row['id'] ?>]" 
+                                                           class="form-control" 
+                                                           min="0" max="10" step="0.1" 
+                                                           value="<?= $row['calificacion'] ?? '' ?>" 
+                                                           placeholder="0.0 - 10.0">
+                                                </td>
+                                            </tr>
+                                        <?php endwhile; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-3">No se encontraron alumnos asignados a este grupo.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+
+                            <?php if ($res_lista && mysqli_num_rows($res_lista) > 0): ?>
+                                <div class="text-end mt-3">
+                                    <button type="submit" class="btn text-white px-4" style="background-color: #1f4287 !important; border-color: #1f4287 !important;"><i class="bi bi-check-all me-1"></i> Guardar Calificaciones Masivas</button>
+                                </div>
+                            <?php endif; ?>
+                        </form>
+                    <?php endif; ?>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLA DE CALIFICACIONES REGISTRADAS -->
+    <div class="card shadow-sm border-0 mb-5">
+        <div class="card-header bg-secondary text-white fw-bold">
+            Calificaciones Registradas
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-striped m-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>ALUMNO</th>
+                        <th>UNIDAD</th>
+                        <th>CALIFICACIÓN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $query_recientes = "SELECT c.id, CONCAT(a.nombre, ' ', a.apaterno, ' ', a.amaterno) AS alumno, 
+                                               u.descripcion AS unidad, c.calificacion 
+                                        FROM calificaciones c
+                                        INNER JOIN alumnos a ON c.id_alumno = a.id
+                                        INNER JOIN unidades u ON c.id_unidad = u.id
+                                        ORDER BY c.id DESC LIMIT 10";
+                    $res_recientes = mysqli_query($conexion, $query_recientes);
+                    if ($res_recientes && mysqli_num_rows($res_recientes) > 0):
+                        while ($rec = mysqli_fetch_assoc($res_recientes)):
+                    ?>
+                        <tr>
+                            <td><?= $rec['id'] ?></td>
+                            <td><?= htmlspecialchars($rec['alumno']) ?></td>
+                            <td><?= htmlspecialchars($rec['unidad']) ?></td>
+                            <td><span class="badge bg-success fs-6"><?= number_format($rec['calificacion'], 2) ?></span></td>
+                        </tr>
+                    <?php 
+                        endwhile;
+                    else:
+                    ?>
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-3">Aún no hay calificaciones registradas.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<script>
-function filtrarUnidades(idAlumno) {
-    var selectUnidades = document.getElementById('id_unidad');
-    if (!idAlumno) {
-        selectUnidades.innerHTML = '<option value="">Selecciona primero un alumno...</option>';
-        return;
-    }
-    
-    // Petición AJAX para obtener las materias/unidades asociadas al alumno
-    fetch('obtener_unidades.php?id_alumno=' + idAlumno)
-        .then(response => response.json())
-        .then(data => {
-            selectUnidades.innerHTML = '';
-            if (data.length > 0) {
-                data.forEach(item => {
-                    var option = document.createElement('option');
-                    option.value = item.id;
-                    option.textContent = item.descripcion;
-                    selectUnidades.appendChild(option);
-                });
-            } else {
-                selectUnidades.innerHTML = '<option value="">Sin unidades asignadas a este alumno</option>';
-            }
-        })
-        .catch(error => {
-            console.log('Filtro dinámico en modo estándar');
-        });
-}
-</script>
-
-<?php include '../NAVEGACION/footer.php'; ?>
+<?php 
+include("../NAVEGACION/footer.php");
+?>
