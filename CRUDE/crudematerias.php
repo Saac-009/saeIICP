@@ -7,10 +7,20 @@ include '../NAVEGACION/navegacion.php';
 ?>
 
 <div class="container my-4">
+
+    <!-- ALERTA DE MODIFICACIÓN EXITOSA -->
+    <?php if (isset($_GET['status']) && $_GET['status'] === 'updated'): ?>
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong>¡Éxito!</strong> La materia se actualizó correctamente.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
+
     <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
         <div class="card-header custom-header p-4 d-flex justify-content-between align-items-center">
             <div>
-                <h4 class="mb-0 fw-bold">Catálogo de Materias</h4>
+                <h4 class="mb-0 fw-bold">Control de Materias</h4>
                 <small class="opacity-75">Listado general de materias activas</small>
             </div>
             <div>
@@ -23,7 +33,7 @@ include '../NAVEGACION/navegacion.php';
                     <thead class="table-light border-bottom">
                         <tr class="text-secondary small text-uppercase">
                             <th class="ps-4">ID</th>
-                            <th>Materia</th>
+                            <th>Nombre de la Materia</th>
                             <th class="text-end pe-4">Acciones</th>
                         </tr>
                     </thead>
@@ -35,7 +45,7 @@ include '../NAVEGACION/navegacion.php';
                             if ($resultado && mysqli_num_rows($resultado) > 0) {
                                 while ($row = mysqli_fetch_assoc($resultado)) {
                                     $id = $row['id'];
-                                    $nombre = $row['nombre'];
+                                    $nombre = $row['nombre'] ?? '-';
 
                                     echo "<tr>";
                                     echo "<td class='ps-4'><span class='badge bg-primary-subtle text-primary fw-bold px-2 py-1'>" . htmlspecialchars($id) . "</span></td>";

@@ -1,71 +1,53 @@
 <?php
-require_once "../conexion.php";
+include("../conexion.php");
 
-$idgrupo = isset($_GET['idgrupo']) ? intval($_GET['idgrupo']) : 0;
-$grupo = null;
+$id = intval($_GET['id'] ?? $_GET['id_grupo'] ?? 0);
 
-if ($idgrupo > 0) {
-    $stmt = $mysqli->prepare("SELECT * FROM grupo WHERE idgrupo = ?");
-    $stmt->bind_param("i", $idgrupo);
-    $stmt->execute();
-    $resultado = $stmt->get_result();
-    $grupo = $resultado->fetch_assoc();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id     = intval($_POST['id']);
+    $nombre = $_POST['nombre'];
+
+    $query = "UPDATE grupo SET nombre = '$nombre' WHERE id = $id";
+
+    if (mysqli_query($conexion, $query)) {
+        header("Location: ../CRUDE/crudegrupos.php?status=updated");
+        exit();
+    }
 }
+
+$res = mysqli_query($conexion, "SELECT * FROM grupo WHERE id = $id");
+$grupo = mysqli_fetch_assoc($res);
 
 if (!$grupo) {
     header("Location: ../CRUDE/crudegrupos.php");
     exit();
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $descripcion = $_POST['des_grupo'];
-
-    $stmt_update = $mysqli->prepare("UPDATE grupo SET des_grupo=? WHERE idgrupo=?");
-    $stmt_update->bind_param("si", $descripcion, $idgrupo);
-
-    if ($stmt_update->execute()) {
-        header("Location: ../CRUDE/crudegrupos.php");
-        exit();
-    }
-}
+include("../NAVEGACION/header.php");
+include("../NAVEGACION/navegacion.php");
 ?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modificar Grupo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header text-white p-3" style="background-color: #1f4287 !important;">
+            <h4 class="m-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>Modificar Grupo</h4>
+        </div>
+        <div class="card-body">
+            <form action="modif_grupo.php" method="POST" class="row g-3">
+                <input type="hidden" name="id" value="<?= $grupo['id'] ?>">
 
-<?php include_once "../navegacion.php"; ?>
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">Nombre del Grupo</label>
+                    <input type="text" name="nombre" class="form-control" value="<?= htmlspecialchars($grupo['nombre']) ?>" required>
+                </div>
 
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-dark text-white text-center">
-                    <h4>Modificar Grupo</h4>
+                <div class="col-12 text-end mt-4">
+                    <a href="../CRUDE/crudegrupos.php" class="btn btn-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn text-white px-4" style="background-color: #1f4287 !important;">Guardar Cambios</button>
                 </div>
-                <div class="card-body">
-                    <form action="" method="POST">
-                        <div class="mb-3">
-                            <label class="form-label">Descripción / Nombre del Grupo</label>
-                            <input type="text" name="des_grupo" class="form-control" value="<?php echo htmlspecialchars($grupo['des_grupo'] ?? ''); ?>" required>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <a href="../CRUDE/crudegrupos.php" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<?php include("../NAVEGACION/footer.php"); ?>

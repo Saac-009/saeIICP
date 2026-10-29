@@ -7,6 +7,16 @@ include '../NAVEGACION/navegacion.php';
 ?>
 
 <div class="container my-4">
+
+    <!-- ALERTA DE MODIFICACIÓN EXITOSA -->
+    <?php if (isset($_GET['status']) && $_GET['status'] === 'updated'): ?>
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong>¡Éxito!</strong> La información del alumno se modificó correctamente en la base de datos.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
+
     <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
         <div class="card-header custom-header p-4 d-flex justify-content-between align-items-center">
             <div>

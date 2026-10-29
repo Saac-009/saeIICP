@@ -1,91 +1,86 @@
 <?php
-require_once "../conexion.php";
+include("../conexion.php");
 
-$idprof = isset($_GET['idprof']) ? intval($_GET['idprof']) : 0;
-$profesor = null;
+$id = intval($_GET['id'] ?? $_GET['id_profesor'] ?? 0);
 
-if ($idprof > 0) {
-    $stmt = $mysqli->prepare("SELECT * FROM profesores WHERE idprof = ?");
-    $stmt->bind_param("i", $idprof);
-    $stmt->execute();
-    $resultado = $stmt->get_result();
-    $profesor = $resultado->fetch_assoc();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id        = intval($_POST['id']);
+    $nocontrol = $_POST['nocontrol'];
+    $nombre    = $_POST['nombre'];
+    $apaterno  = $_POST['apaterno'];
+    $amaterno  = $_POST['amaterno'];
+    $domicilio = $_POST['domicilio'];
+    $correo    = $_POST['correo'];
+    $telefono  = $_POST['telefono'];
+
+    $query = "UPDATE profesores SET 
+                nocontrol = '$nocontrol', nombre = '$nombre', apaterno = '$apaterno', amaterno = '$amaterno', 
+                domicilio = '$domicilio', correo = '$correo', telefono = '$telefono' 
+              WHERE id = $id";
+
+    if (mysqli_query($conexion, $query)) {
+        header("Location: ../CRUDE/crudeprofesores.php?status=updated");
+        exit();
+    }
 }
+
+$res = mysqli_query($conexion, "SELECT * FROM profesores WHERE id = $id");
+$profesor = mysqli_fetch_assoc($res);
 
 if (!$profesor) {
     header("Location: ../CRUDE/crudeprofesores.php");
     exit();
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nocontrol = $_POST['nocontrol_prof'];
-    $nombre = $_POST['nombre_prof'];
-    $apaterno = $_POST['apaterno_prof'];
-    $amaterno = $_POST['amaterno_prof'];
-    $email = $_POST['mail_prof'];
-
-    $stmt_update = $mysqli->prepare("UPDATE profesores SET nocontrol_prof=?, nombre_prof=?, apaterno_prof=?, amaterno_prof=?, mail_prof=? WHERE idprof=?");
-    $stmt_update->bind_param("sssssi", $nocontrol, $nombre, $apaterno, $amaterno, $email, $idprof);
-
-    if ($stmt_update->execute()) {
-        header("Location: ../CRUDE/crudeprofesores.php");
-        exit();
-    }
-}
+include("../NAVEGACION/header.php");
+include("../NAVEGACION/navegacion.php");
 ?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modificar Profesor</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header text-white p-3" style="background-color: #1f4287 !important;">
+            <h4 class="m-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>Modificar Profesor</h4>
+        </div>
+        <div class="card-body">
+            <form action="modif_prof.php" method="POST" class="row g-3">
+                <input type="hidden" name="id" value="<?= $profesor['id'] ?>">
 
-<?php include_once "../navegacion.php"; ?>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">No. Control</label>
+                    <input type="text" name="nocontrol" class="form-control" value="<?= htmlspecialchars($profesor['nocontrol'] ?? '') ?>" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Nombre</label>
+                    <input type="text" name="nombre" class="form-control" value="<?= htmlspecialchars($profesor['nombre']) ?>" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Apellido Paterno</label>
+                    <input type="text" name="apaterno" class="form-control" value="<?= htmlspecialchars($profesor['apaterno']) ?>" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Apellido Materno</label>
+                    <input type="text" name="amaterno" class="form-control" value="<?= htmlspecialchars($profesor['amaterno']) ?>" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Teléfono</label>
+                    <input type="text" name="telefono" class="form-control" value="<?= htmlspecialchars($profesor['telefono'] ?? '') ?>">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Correo Electrónico</label>
+                    <input type="email" name="correo" class="form-control" value="<?= htmlspecialchars($profesor['correo'] ?? '') ?>">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Domicilio</label>
+                    <input type="text" name="domicilio" class="form-control" value="<?= htmlspecialchars($profesor['domicilio'] ?? '') ?>">
+                </div>
 
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-dark text-white text-center">
-                    <h4>Modificar Profesor</h4>
+                <div class="col-12 text-end mt-4">
+                    <a href="../CRUDE/crudeprofesores.php" class="btn btn-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn text-white px-4" style="background-color: #1f4287 !important;">Guardar Cambios</button>
                 </div>
-                <div class="card-body">
-                    <form action="" method="POST">
-                        <div class="mb-3">
-                            <label class="form-label">No. Control</label>
-                            <input type="text" name="nocontrol_prof" class="form-control" value="<?php echo htmlspecialchars($profesor['nocontrol_prof']); ?>" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Nombre</label>
-                            <input type="text" name="nombre_prof" class="form-control" value="<?php echo htmlspecialchars($profesor['nombre_prof']); ?>" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Apellido Paterno</label>
-                            <input type="text" name="apaterno_prof" class="form-control" value="<?php echo htmlspecialchars($profesor['apaterno_prof']); ?>" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Apellido Materno</label>
-                            <input type="text" name="amaterno_prof" class="form-control" value="<?php echo htmlspecialchars($profesor['amaterno_prof']); ?>" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" name="mail_prof" class="form-control" value="<?php echo htmlspecialchars($profesor['mail_prof']); ?>" required>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <a href="../CRUDE/crudeprofesores.php" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<?php include("../NAVEGACION/footer.php"); ?>

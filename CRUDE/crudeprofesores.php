@@ -7,11 +7,21 @@ include '../NAVEGACION/navegacion.php';
 ?>
 
 <div class="container my-4">
+
+    <!-- ALERTA DE MODIFICACIÓN EXITOSA -->
+    <?php if (isset($_GET['status']) && $_GET['status'] === 'updated'): ?>
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong>¡Éxito!</strong> Los datos del profesor se actualizaron correctamente.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
+
     <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
         <div class="card-header custom-header p-4 d-flex justify-content-between align-items-center">
             <div>
-                <h4 class="mb-0 fw-bold">Catálogo de Profesores</h4>
-                <small class="opacity-75">Listado general de docentes activos</small>
+                <h4 class="mb-0 fw-bold">Control de Profesores</h4>
+                <small class="opacity-75">Listado general de profesores activos</small>
             </div>
             <div>
                 <a href="../REGISTRO/profesores.php" class="btn btn-light btn-sm fw-bold me-2">+ Nuevo Profesor</a>

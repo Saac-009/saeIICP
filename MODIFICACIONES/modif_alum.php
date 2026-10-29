@@ -1,96 +1,102 @@
 <?php
-require_once "../conexion.php";
+include("../conexion.php");
 
-$idalumn = isset($_GET['idalumn']) ? intval($_GET['idalumn']) : 0;
-$alumno = null;
+// Soporta tanto ?id= como ?id_alumno=
+$id = intval($_GET['id'] ?? $_GET['id_alumno'] ?? 0);
 
-if ($idalumn > 0) {
-    $stmt = $mysqli->prepare("SELECT * FROM alumnos WHERE idalumn = ?");
-    $stmt->bind_param("i", $idalumn);
-    $stmt->execute();
-    $resultado = $stmt->get_result();
-    $alumno = $resultado->fetch_assoc();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id        = intval($_POST['id']);
+    $nocontrol = $_POST['nocontrol'];
+    $nombre    = $_POST['nombre'];
+    $apaterno  = $_POST['apaterno'];
+    $amaterno  = $_POST['amaterno'];
+    $domicilio = $_POST['domicilio'];
+    $correo    = $_POST['correo'];
+    $telefono  = $_POST['telefono'];
+    $id_grupo  = intval($_POST['id_grupo']);
+
+    $query = "UPDATE alumnos SET 
+                nocontrol = '$nocontrol', nombre = '$nombre', apaterno = '$apaterno', amaterno = '$amaterno', 
+                domicilio = '$domicilio', correo = '$correo', telefono = '$telefono', id_grupo = $id_grupo 
+              WHERE id = $id";
+
+    if (mysqli_query($conexion, $query)) {
+        header("Location: ../CRUDE/crudealumnos.php?status=updated");
+        exit();
+    }
 }
+
+// Consultar datos del alumno
+$res = mysqli_query($conexion, "SELECT * FROM alumnos WHERE id = $id");
+$alumno = mysqli_fetch_assoc($res);
 
 if (!$alumno) {
     header("Location: ../CRUDE/crudealumnos.php");
     exit();
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $matricula = $_POST['matricula_al'];
-    $nombre = $_POST['nombre_al'];
-    $apaterno = $_POST['apaterno_al'];
-    $amaterno = $_POST['amaterno_al'];
-    $domicilio = $_POST['dom_al'];
-    $email = $_POST['mail_al'];
+// Consultar grupos
+$res_grupos = mysqli_query($conexion, "SELECT id, nombre FROM grupo WHERE estatus = 'ALTA'");
 
-    $stmt_update = $mysqli->prepare("UPDATE alumnos SET matricula_al=?, nombre_al=?, apaterno_al=?, amaterno_al=?, dom_al=?, mail_al=? WHERE idalumn=?");
-    $stmt_update->bind_param("ssssssi", $matricula, $nombre, $apaterno, $amaterno, $domicilio, $email, $idalumn);
-
-    if ($stmt_update->execute()) {
-        header("Location: ../CRUDE/crudealumnos.php");
-        exit();
-    }
-}
+include("../NAVEGACION/header.php");
+include("../NAVEGACION/navegacion.php");
 ?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modificar Alumno</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header text-white p-3" style="background-color: #1f4287 !important;">
+            <h4 class="m-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>Modificar Alumno</h4>
+        </div>
+        <div class="card-body">
+            <form action="modif_alum.php" method="POST" class="row g-3">
+                <input type="hidden" name="id" value="<?= $alumno['id'] ?>">
 
-<?php include_once "../navegacion.php"; ?>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">No. Control</label>
+                    <input type="text" name="nocontrol" class="form-control" value="<?= htmlspecialchars($alumno['nocontrol'] ?? '') ?>" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Nombre</label>
+                    <input type="text" name="nombre" class="form-control" value="<?= htmlspecialchars($alumno['nombre']) ?>" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Apellido Paterno</label>
+                    <input type="text" name="apaterno" class="form-control" value="<?= htmlspecialchars($alumno['apaterno']) ?>" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Apellido Materno</label>
+                    <input type="text" name="amaterno" class="form-control" value="<?= htmlspecialchars($alumno['amaterno']) ?>" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Grupo</label>
+                    <select name="id_grupo" class="form-select" required>
+                        <?php while($gr = mysqli_fetch_assoc($res_grupos)): ?>
+                            <option value="<?= $gr['id'] ?>" <?= ($gr['id'] == $alumno['id_grupo']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($gr['nombre']) ?>
+                            </option>
+                        <?php endwhile; ?>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Teléfono</label>
+                    <input type="text" name="telefono" class="form-control" value="<?= htmlspecialchars($alumno['telefono'] ?? '') ?>">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Correo Electrónico</label>
+                    <input type="email" name="correo" class="form-control" value="<?= htmlspecialchars($alumno['correo'] ?? '') ?>">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Domicilio</label>
+                    <input type="text" name="domicilio" class="form-control" value="<?= htmlspecialchars($alumno['domicilio'] ?? '') ?>">
+                </div>
 
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-dark text-white text-center">
-                    <h4>Modificar Alumno</h4>
+                <div class="col-12 text-end mt-4">
+                    <a href="../CRUDE/crudealumnos.php" class="btn btn-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn text-white px-4" style="background-color: #1f4287 !important;">Guardar Cambios</button>
                 </div>
-                <div class="card-body">
-                    <form action="" method="POST">
-                        <div class="mb-3">
-                            <label class="form-label">Matrícula</label>
-                            <input type="text" name="matricula_al" class="form-control" value="<?php echo htmlspecialchars($alumno['matricula_al']); ?>" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Nombre</label>
-                            <input type="text" name="nombre_al" class="form-control" value="<?php echo htmlspecialchars($alumno['nombre_al']); ?>" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Apellido Paterno</label>
-                            <input type="text" name="apaterno_al" class="form-control" value="<?php echo htmlspecialchars($alumno['apaterno_al']); ?>" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Apellido Materno</label>
-                            <input type="text" name="amaterno_al" class="form-control" value="<?php echo htmlspecialchars($alumno['amaterno_al']); ?>" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Domicilio</label>
-                            <input type="text" name="dom_al" class="form-control" value="<?php echo htmlspecialchars($alumno['dom_al']); ?>" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" name="mail_al" class="form-control" value="<?php echo htmlspecialchars($alumno['mail_al']); ?>" required>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <a href="../CRUDE/crudealumnos.php" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<?php include("../NAVEGACION/footer.php"); ?>
