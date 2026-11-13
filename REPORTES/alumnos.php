@@ -1,66 +1,70 @@
 <?php
-include '../conexion.php'; 
-if (!isset($conexion) && isset($mysqli)) $conexion = $mysqli;
+include('../NAVEGACION/header.php');
+include('../NAVEGACION/navegacion.php');
+include('../conexion.php');
 
-include '../NAVEGACION/header.php';
-include '../NAVEGACION/navegacion.php';
+$es_alumno = ($_SESSION['rol'] === 'ALUMNO');
+
+if ($es_alumno) {
+    // El alumno sólo consulta sus datos y calificaciones registradas
+    $id_alumno = $_SESSION['id_usuario'];
+    $query = "SELECT c.id, a.nocontrol, a.nombre, a.apaterno, a.amaterno, u.descripcion AS unidad, c.calificacion 
+              FROM calificaciones c
+              INNER JOIN alumnos a ON c.id_alumno = a.id
+              INNER JOIN unidades u ON c.id_unidad = u.id
+              WHERE a.id = '$id_alumno' AND (a.estatus != 'BAJA' OR a.estatus IS NULL)";
+} else {
+    // Admins y Profesores consultan el reporte completo
+    $query = "SELECT c.id, a.nocontrol, a.nombre, a.apaterno, a.amaterno, u.descripcion AS unidad, c.calificacion 
+              FROM calificaciones c
+              INNER JOIN alumnos a ON c.id_alumno = a.id
+              INNER JOIN unidades u ON c.id_unidad = u.id
+              WHERE (a.estatus != 'BAJA' OR a.estatus IS NULL)";
+}
+
+$resultado = mysqli_query($conexion, $query);
 ?>
 
 <div class="container my-4">
-    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
-        <div class="card-header custom-header p-4">
-            <h4 class="mb-0 fw-bold">Reporte General de Alumnos</h4>
-            <small class="opacity-75">Información completa de alumnos y su grupo asignado</small>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="fw-bold mb-0"><?= $es_alumno ? 'Mi Boleta de Calificaciones' : 'Reporte de Calificaciones de Alumnos' ?></h3>
+            <small class="text-muted"><?= $es_alumno ? 'Consulta de calificaciones personales' : 'Consulta general del alumnado' ?></small>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-striped table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr class="text-secondary small text-uppercase">
-                            <th class="ps-4">ID</th>
-                            <th>No. Control</th>
-                            <th>Nombre Completo</th>
-                            <th>Grupo</th>
-                            <th>Domicilio</th>
-                            <th>Correo Electrónico</th>
-                            <th class="pe-4">Teléfono</th>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-center" style="font-size: 0.9rem;">
+                <thead class="table-light text-uppercase small border-bottom">
+                    <tr>
+                        <th>NO. CONTROL</th>
+                        <th>ALUMNO</th>
+                        <th>UNIDAD / MATERIA</th>
+                        <th>CALIFICACIÓN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (mysqli_num_rows($resultado) > 0): ?>
+                        <?php while ($row = mysqli_fetch_assoc($resultado)): ?>
+                        <tr>
+                            <td class="fw-bold text-secondary"><?= htmlspecialchars($row['nocontrol'] ?? '') ?></td>
+                            <td class="fw-semibold text-start"><?= htmlspecialchars($row['nombre'] . ' ' . $row['apaterno'] . ' ' . $row['amaterno']) ?></td>
+                            <td class="text-secondary"><?= htmlspecialchars($row['unidad'] ?? '') ?></td>
+                            <td>
+                                <span class="badge bg-success px-3 py-2 fs-6"><?= number_format($row['calificacion'], 2) ?></span>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        $sql = "SELECT a.*, g.nombre AS grupo 
-                                FROM alumnos a 
-                                LEFT JOIN grupo g ON a.id_grupo = g.id
-                                WHERE (a.estatus != 'BAJA' OR a.estatus IS NULL)";
-                        $res = mysqli_query($conexion, $sql);
-
-                        if ($res && mysqli_num_rows($res) > 0) {
-                            while ($r = mysqli_fetch_assoc($res)) {
-                                $nocontrol = !empty($r['nocontrol']) ? $r['nocontrol'] : '-';
-                                $nombre_completo = trim(($r['nombre'] ?? '') . ' ' . ($r['apaterno'] ?? '') . ' ' . ($r['amaterno'] ?? ''));
-                                $domicilio = !empty($r['domicilio']) ? $r['domicilio'] : '-';
-                                $correo = !empty($r['correo']) ? $r['correo'] : '-';
-                                $telefono = !empty($r['telefono']) ? $r['telefono'] : '-';
-
-                                echo "<tr>";
-                                echo "<td class='ps-4'>{$r['id']}</td>";
-                                echo "<td class='fw-semibold text-primary'>" . htmlspecialchars($nocontrol) . "</td>";
-                                echo "<td class='fw-semibold text-dark'>" . htmlspecialchars($nombre_completo) . "</td>";
-                                echo "<td>" . ($r['grupo'] ? "<span class='badge bg-secondary-subtle text-secondary fw-bold px-2 py-1'>" . htmlspecialchars($r['grupo']) . "</span>" : "<span class='text-muted small'>Sin grupo</span>") . "</td>";
-                                echo "<td class='text-muted small'>" . htmlspecialchars($domicilio) . "</td>";
-                                echo "<td class='text-muted small'>" . htmlspecialchars($correo) . "</td>";
-                                echo "<td class='text-muted small pe-4'>" . htmlspecialchars($telefono) . "</td>";
-                                echo "</tr>";
-                            }
-                        } else {
-                            echo "<tr><td colspan='7' class='text-center text-muted py-4'>Sin registros activos.</td></tr>";
-                        }
-                        ?>
-                    </tbody>
-                </table>
-            </div>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="4" class="py-4 text-muted">No se encontraron calificaciones registradas.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<?php include '../NAVEGACION/footer.php'; ?>
+<?php include('../NAVEGACION/footer.php'); ?>
