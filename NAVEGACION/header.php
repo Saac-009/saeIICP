@@ -12,18 +12,14 @@ if (!isset($_SESSION['usuario'])) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Escuela IICP</title>
     <link rel="stylesheet" href="../ASSETS/CSS/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-      /* Permite desplegar el submenú secundario en el navbar */
-      .dropdown-menu .dropend:hover .dropdown-menu {
-        display: block;
-        position: absolute;
-        top: 0;
-        left: 100%;
-        margin-top: -1px;
-      }
+        body {
+            background-color: #f4f6f9 !important;
+        }
     </style>
 </head>
 <body>
